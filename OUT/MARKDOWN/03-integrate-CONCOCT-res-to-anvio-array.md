@@ -42,7 +42,7 @@ UPDATED_PBS_ARRAY_INDEX=$(( ${PBS_ARRAY_INDEX} +1 ))
 
 NBGENOME_BACT_FILE=$WORKDIR/$CONTIG_DIR/GENOME_NB/genome-bact.txt
 NB_G=$(awk -v nbgen=$UPDATED_PBS_ARRAY_INDEX 'END{print $nbgen}' $NBGENOME_BACT_FILE)
-DIV=5
+DIV=2
 bins=$(( $NB_G/$DIV ))
 
 SAMPLE=$(awk -v pbsarray="$UPDATED_PBS_ARRAY_INDEX" -F" " 'NR==1{print $pbsarray}' $NBGENOME_BACT_FILE)
