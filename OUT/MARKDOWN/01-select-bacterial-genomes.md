@@ -1,4 +1,4 @@
-select-bacterial-genomes
+01-select-bacterial-genomes
 ================
 Juliette Casemajor
 2/25/2022
