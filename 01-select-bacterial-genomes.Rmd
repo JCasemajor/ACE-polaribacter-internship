@@ -1,5 +1,5 @@
 ---
-title: "select-bacterial-genomes"
+title: "01-select-bacterial-genomes"
 author: "Juliette Casemajor"
 date: "2/25/2022"
 language: bash
