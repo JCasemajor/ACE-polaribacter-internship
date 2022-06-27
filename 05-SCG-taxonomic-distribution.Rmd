@@ -1,0 +1,490 @@
+---
+title: "05-SCG-taxonomic-distribution"
+author: "Juliette Casemajor"
+date: "6/27/2022"
+output :
+  github_document:
+    toc: true
+---
+
+```{r setup, include=FALSE}
+knitr::opts_chunk$set(echo = TRUE)
+```
+
+# Load packages and dependencies
+
+## Load packages
+
+```{r message=FALSE, warning=FALSE}
+require(here)
+require(stringr)
+require(dplyr)
+require(ggplot2)
+require(cowplot)
+require(tidyr)
+require(forcats)
+require(knitr)
+```
+
+## Load functions files
+
+```{r , message=FALSE, warning=FALSE}
+source("MacrosLoad.R")
+```
+
+## Load path for set of bins
+
+In our case, in the DATA directory, our samples are clustered in 7 groups : s6_G1, s6_G2, s6_G3, s8_G7, s6_G6, s8_G4 and s8_G7. Each group has a set of concoct bins. We have to recover this set of bins. In order to do that, we have to define the path to each cluster.
+
+```{r}
+s6G1_DIR <- paste("DATA","s6_G1/",sep="/")
+s6G2_DIR <- paste("DATA","s6_G2/",sep="/")
+s6G3_DIR <- paste("DATA","s6_G3/",sep="/")
+s6G5_DIR <- paste("DATA","s6_G5/",sep="/")
+s6G6_DIR <- paste("DATA","s6_G6/",sep="/")
+s8G4_DIR <- paste("DATA","s8_G4/",sep="/")
+s8G7_DIR <- paste("DATA","s8_G7/",sep="/")
+```
+
+# Program
+
+## Load data
+
+All the data will be load as a list of dataframes. There is a list for each group of samples (7 lists of multiple dataframes).
+
+```{r}
+s6_G1 <- load.data(s6G1_DIR) 
+s6_G2 <- load.data(s6G2_DIR)
+s6_G3 <- load.data(s6G3_DIR)
+s6_G5 <- load.data(s6G5_DIR)
+s6_G6 <- load.data(s6G6_DIR)
+s8_G4 <- load.data(s8G4_DIR)
+s8_G7 <- load.data(s8G7_DIR)
+```
+
+We want to see the taxonomic distribution of SCG in our samples. This can be done at several levels. Here, we first want to see to which phyla the SCGs are assigned. Then the SCG belonging only to the Bacteroidetes and finally the SCG belonging to the Flavobacteriaceae.
+
+## Phylum
+### Select OTU level
+
+For phylum, we don't need to have special operations because we want to keep them all. So we will keep all the elements that belong to the domain of bacteria.
+
+```{r}
+phylum_s6_G1 <- selectOTUlevel("Bacteria",s6_G1,"t_domain")
+phylum_s6_G2 <- selectOTUlevel("Bacteria",s6_G2,"t_domain")
+phylum_s6_G3 <- selectOTUlevel("Bacteria",s6_G3,"t_domain")
+phylum_s6_G5 <- selectOTUlevel("Bacteria",s6_G5,"t_domain")
+phylum_s6_G6 <- selectOTUlevel("Bacteria",s6_G6,"t_domain")
+phylum_s8_G4 <- selectOTUlevel("Bacteria",s8_G4,"t_domain")
+phylum_s8_G7 <- selectOTUlevel("Bacteria",s8_G7,"t_domain")
+```
+
+### Count OTU level
+
+We want to count how many SCG are assigned to each phylum in our data.
+
+```{r}
+count_s6_G1 <- getOTUcount(phylum_s6_G1,"t_phylum")
+count_s6_G2 <- getOTUcount(phylum_s6_G2,"t_phylum")
+count_s6_G3 <- getOTUcount(phylum_s6_G3,"t_phylum")
+count_s6_G5 <- getOTUcount(phylum_s6_G5,"t_phylum")
+count_s6_G6 <- getOTUcount(phylum_s6_G6,"t_phylum")
+count_s8_G4 <- getOTUcount(phylum_s8_G4,"t_phylum")
+count_s8_G7 <- getOTUcount(phylum_s8_G7,"t_phylum")
+```
+
+## Available OTUs
+
+We want to see all the OTUs available in our data.
+
+```{r}
+all_s6_G1 <- getAllOTU(count_s6_G1,"t_phylum")
+all_s6_G2 <- getAllOTU(count_s6_G2,"t_phylum")
+all_s6_G3 <- getAllOTU(count_s6_G3,"t_phylum")
+all_s6_G5 <- getAllOTU(count_s6_G5,"t_phylum")
+all_s6_G6 <- getAllOTU(count_s6_G6,"t_phylum")
+all_s8_G4 <- getAllOTU(count_s8_G4,"t_phylum")
+all_s8_G7 <- getAllOTU(count_s8_G7,"t_phylum")
+all_OTUs <- bind_rows(all_s6_G1,all_s6_G2,all_s6_G3,all_s6_G5,all_s6_G6,all_s8_G4,all_s8_G7)
+all_OTUs <- all_OTUs %>% distinct(t_phylum, .keep_all = FALSE)
+
+rm(all_s6_G1,all_s6_G2,all_s6_G3,all_s6_G5,all_s6_G6,all_s8_G4,all_s8_G7)
+
+kable(head(all_OTUs),caption = "Head of dataframe")
+```
+
+## Set up dataframe for distribution
+
+Time to build the dataframe containing all the SCG counts in our data.
+
+```{r}
+DF_s6_G1 <- buildDF(count_s6_G1,all_OTUs,"t_phylum")
+DF_s6_G2 <- buildDF(count_s6_G2,all_OTUs,"t_phylum")
+DF_s6_G3 <- buildDF(count_s6_G3,all_OTUs,"t_phylum")
+DF_s6_G5 <- buildDF(count_s6_G5,all_OTUs,"t_phylum")
+DF_s6_G6 <- buildDF(count_s6_G6,all_OTUs,"t_phylum")
+DF_s8_G4 <- buildDF(count_s8_G4,all_OTUs,"t_phylum")
+DF_s8_G7 <- buildDF(count_s8_G7,all_OTUs,"t_phylum")
+```
+
+Bind all the dataframes.
+
+```{r}
+All_samples <- all_OTUs %>% left_join(DF_s6_G1, by="t_phylum") %>%
+  left_join(DF_s6_G2, by="t_phylum") %>%
+  left_join(DF_s6_G3,by="t_phylum") %>%
+  left_join(DF_s6_G5,by="t_phylum") %>%
+  left_join(DF_s6_G6,by="t_phylum") %>%
+  left_join(DF_s8_G4,by="t_phylum") %>%
+  left_join(DF_s8_G7,by="t_phylum")
+
+names(All_samples)<-c("OTUs","s6_G1","s6_G2","s6_G3","s6_G5","s6_G6","s8_G4","s8_G7")
+
+kable(head(All_samples),caption="Head of dataframe")
+```
+
+## Compute the taxonomic distribution of SCG in each group of samples
+
+```{r}
+distribution_phylum <- relative_distribution(All_samples)
+kable(head(distribution_phylum),caption="Head of dataframe")
+```
+
+```{r}
+distribution_phylum <- gather(distribution_phylum,group,distribution,s6_G1:s8_G7,factor_key=TRUE)
+kable(head(distribution_phylum),caption="Head of dataframe")
+```
+
+We delete the SCG attributed to OTUs that have a distribution of 0.
+
+```{r}
+distribution_phylum <- distribution_phylum[substr(distribution_phylum$distribution,0.1,100) != 0,]
+kable(head(distribution_phylum),caption="Head of dataframe")
+```
+We are done with the phylum. We will now do the same with other taxonomic levels.
+
+## Bacteroidota
+### Select OTU level
+
+We want to select only the SCG belonging to the phylum Bacteroidota.
+
+```{r}
+bacteroidota_s6_G1 <- selectOTUlevel("Bacteroidota",s6_G1,"t_phylum")
+bacteroidota_s6_G2 <- selectOTUlevel("Bacteroidota",s6_G2,"t_phylum")
+bacteroidota_s6_G3 <- selectOTUlevel("Bacteroidota",s6_G3,"t_phylum")
+bacteroidota_s6_G5 <- selectOTUlevel("Bacteroidota",s6_G5,"t_phylum")
+bacteroidota_s6_G6 <- selectOTUlevel("Bacteroidota",s6_G6,"t_phylum")
+bacteroidota_s8_G4 <- selectOTUlevel("Bacteroidota",s8_G4,"t_phylum")
+bacteroidota_s8_G7 <- selectOTUlevel("Bacteroidota",s8_G7,"t_phylum")
+```
+
+### Count OTU level
+
+We want to count how many SCG are assigned to each phylum in our data.
+
+```{r}
+count_s6_G1 <- getOTUcount(bacteroidota_s6_G1,"t_family")
+count_s6_G2 <- getOTUcount(bacteroidota_s6_G2,"t_family")
+count_s6_G3 <- getOTUcount(bacteroidota_s6_G3,"t_family")
+count_s6_G5 <- getOTUcount(bacteroidota_s6_G5,"t_family")
+count_s6_G6 <- getOTUcount(bacteroidota_s6_G6,"t_family")
+count_s8_G4 <- getOTUcount(bacteroidota_s8_G4,"t_family")
+count_s8_G7 <- getOTUcount(bacteroidota_s8_G7,"t_family")
+```
+
+### Available OTUs
+
+We want to see all the OTUs available in our data.
+
+```{r}
+all_s6_G1 <- getAllOTU(count_s6_G1,"t_family")
+all_s6_G2 <- getAllOTU(count_s6_G2,"t_family")
+all_s6_G3 <- getAllOTU(count_s6_G3,"t_family")
+all_s6_G5 <- getAllOTU(count_s6_G5,"t_family")
+all_s6_G6 <- getAllOTU(count_s6_G6,"t_family")
+all_s8_G4 <- getAllOTU(count_s8_G4,"t_family")
+all_s8_G7 <- getAllOTU(count_s8_G7,"t_family")
+all_OTUs_B <- bind_rows(all_s6_G1,all_s6_G2,all_s6_G3,all_s6_G5,all_s6_G6,all_s8_G4,all_s8_G7)
+all_OTUs_B <- all_OTUs_B %>% distinct(t_family, .keep_all = FALSE)
+
+rm(all_s6_G1,all_s6_G2,all_s6_G3,all_s6_G5,all_s6_G6,all_s8_G4,all_s8_G7)
+
+kable(head(all_OTUs_B),caption="Head of dataframe")
+```
+
+### Set up dataframe for distribution
+
+Time to build the dataframe containing all the SCG counts in our data.
+
+```{r}
+DF_s6_G1 <- buildDF(count_s6_G1,all_OTUs_B,"t_family")
+DF_s6_G2 <- buildDF(count_s6_G2,all_OTUs_B,"t_family")
+DF_s6_G3 <- buildDF(count_s6_G3,all_OTUs_B,"t_family")
+DF_s6_G5 <- buildDF(count_s6_G5,all_OTUs_B,"t_family")
+DF_s6_G6 <- buildDF(count_s6_G6,all_OTUs_B,"t_family")
+DF_s8_G4 <- buildDF(count_s8_G4,all_OTUs_B,"t_family")
+DF_s8_G7 <- buildDF(count_s8_G7,all_OTUs_B,"t_family")
+```
+
+Bind all the dataframes.
+
+```{r}
+All_samples_bacteroidota <- all_OTUs_B %>% left_join(DF_s6_G1, by="t_family") %>%
+  left_join(DF_s6_G2, by="t_family") %>%
+  left_join(DF_s6_G3,by="t_family") %>%
+  left_join(DF_s6_G5,by="t_family") %>%
+  left_join(DF_s6_G6,by="t_family") %>%
+  left_join(DF_s8_G4,by="t_family") %>%
+  left_join(DF_s8_G7,by="t_family")
+
+names(All_samples_bacteroidota)<-c("OTUs","s6_G1","s6_G2","s6_G3","s6_G5","s6_G6","s8_G4","s8_G7")
+
+kable(head(All_samples_bacteroidota),caption="Head of dataframe")
+```
+
+### Compute the taxonomic distribution of SCG in each group of samples
+
+```{r}
+distribution_bacteroidota <- relative_distribution(All_samples_bacteroidota)
+kable(head(distribution_bacteroidota),caption="Head of dataframe")
+```
+
+```{r}
+distribution_bacteroidota <- gather(distribution_bacteroidota,group,distribution,s6_G1:s8_G7,factor_key=TRUE)
+kable(head(distribution_bacteroidota),caption="Head of dataframe")
+```
+We delete the SCG attributed to OTUs that have a distribution of 0.
+
+```{r}
+distribution_bacteroidota <- distribution_bacteroidota[substr(distribution_bacteroidota$distribution,0.1,100) != 0,]
+kable(head(distribution_bacteroidota),caption="Head of dataframe")
+```
+We can assume there are some SCG whose distribution will be inferior to 1%. We will try and delete them.
+
+```{r}
+lessthan1 <- distribution_bacteroidota[distribution_bacteroidota$n < 1,]
+distribution_bacteroidota$OTUs[distribution_bacteroidota$n < 1] <- "OTUs < 1% abundance"
+kable(head(distribution_bacteroidota),caption = "Head of dataframe")
+```
+All done for Bacteroidota.
+Next step is to see which genus are found in Flavobacteriaceae.
+
+## Flavobacteriaceae
+### Select OTU level
+
+We want to select only the SCG belonging to the family Flavobacteriaceae
+
+```{r}
+flavo_s6_G1 <- selectOTUlevel("Flavobacteriaceae",s6_G1,"t_family")
+flavo_s6_G2 <- selectOTUlevel("Flavobacteriaceae",s6_G2,"t_family")
+flavo_s6_G3 <- selectOTUlevel("Flavobacteriaceae",s6_G3,"t_family")
+flavo_s6_G5 <- selectOTUlevel("Flavobacteriaceae",s6_G5,"t_family")
+flavo_s6_G6 <- selectOTUlevel("Flavobacteriaceae",s6_G6,"t_family")
+flavo_s8_G4 <- selectOTUlevel("Flavobacteriaceae",s8_G4,"t_family")
+flavo_s8_G7 <- selectOTUlevel("Flavobacteriaceae",s8_G7,"t_family")
+```
+
+### Count OTU level
+
+We want to count how many SCG are assigned to each phylum in our data.
+
+```{r}
+count_s6_G1 <- getOTUcount(flavo_s6_G1,"t_genus")
+count_s6_G2 <- getOTUcount(flavo_s6_G2,"t_genus")
+count_s6_G3 <- getOTUcount(flavo_s6_G3,"t_genus")
+count_s6_G5 <- getOTUcount(flavo_s6_G5,"t_genus")
+count_s6_G6 <- getOTUcount(flavo_s6_G6,"t_genus")
+count_s8_G4 <- getOTUcount(flavo_s8_G4,"t_genus")
+count_s8_G7 <- getOTUcount(flavo_s8_G7,"t_genus")
+```
+
+### Available OTUs
+
+We want to see all the OTUs available in our data.
+
+```{r}
+all_s6_G1 <- getAllOTU(count_s6_G1,"t_genus")
+all_s6_G2 <- getAllOTU(count_s6_G2,"t_genus")
+all_s6_G3 <- getAllOTU(count_s6_G3,"t_genus")
+all_s6_G5 <- getAllOTU(count_s6_G5,"t_genus")
+all_s6_G6 <- getAllOTU(count_s6_G6,"t_genus")
+all_s8_G4 <- getAllOTU(count_s8_G4,"t_genus")
+all_s8_G7 <- getAllOTU(count_s8_G7,"t_genus")
+all_OTUs_F <- bind_rows(all_s6_G1,all_s6_G2,all_s6_G3,all_s6_G5,all_s6_G6,all_s8_G4,all_s8_G7)
+all_OTUs_F <- all_OTUs_F %>% distinct(t_genus, .keep_all = FALSE)
+
+rm(all_s6_G1,all_s6_G2,all_s6_G3,all_s6_G5,all_s6_G6,all_s8_G4,all_s8_G7)
+
+kable(head(all_OTUs_F),caption="Head of dataframe")
+```
+### Set up dataframe for distribution
+
+Time to build the dataframe containing all the SCG counts in our data.
+
+```{r}
+DF_s6_G1 <- buildDF(count_s6_G1,all_OTUs_F,"t_genus")
+DF_s6_G2 <- buildDF(count_s6_G2,all_OTUs_F,"t_genus")
+DF_s6_G3 <- buildDF(count_s6_G3,all_OTUs_F,"t_genus")
+DF_s6_G5 <- buildDF(count_s6_G5,all_OTUs_F,"t_genus")
+DF_s6_G6 <- buildDF(count_s6_G6,all_OTUs_F,"t_genus")
+DF_s8_G4 <- buildDF(count_s8_G4,all_OTUs_F,"t_genus")
+DF_s8_G7 <- buildDF(count_s8_G7,all_OTUs_F,"t_genus")
+```
+
+Bind all the dataframes.
+
+```{r}
+All_samples_flavo <- all_OTUs_F %>% left_join(DF_s6_G1, by="t_genus") %>%
+  left_join(DF_s6_G2, by="t_genus") %>%
+  left_join(DF_s6_G3,by="t_genus") %>%
+  left_join(DF_s6_G5,by="t_genus") %>%
+  left_join(DF_s6_G6,by="t_genus") %>%
+  left_join(DF_s8_G4,by="t_genus") %>%
+  left_join(DF_s8_G7,by="t_genus")
+
+names(All_samples_flavo)<-c("OTUs","s6_G1","s6_G2","s6_G3","s6_G5","s6_G6","s8_G4","s8_G7")
+
+kable(head(All_samples_flavo),caption="Head of dataframe")
+```
+
+### Compute the taxonomic distribution of SCG in each group of samples
+
+```{r}
+distribution_flavo <- relative_distribution(All_samples_flavo)
+kable(head(distribution_flavo),caption="Head of dataframe")
+```
+
+```{r}
+distribution_flavo <- gather(distribution_flavo,group,distribution,s6_G1:s8_G7,factor_key=TRUE)
+kable(head(distribution_flavo),caption="Head of dataframe")
+```
+
+We delete the SCG attributed to OTUs that have a distribution of 0.
+
+```{r}
+distribution_flavo <- distribution_flavo[substr(distribution_flavo$distribution,0.1,100) != 0,]
+kable(head(distribution_flavo),caption="Head of dataframe")
+```
+
+We can assume there are some SCG whose distribution will be inferior to 1%. We will try and group them.
+
+```{r}
+lessthan1 <- distribution_flavo[distribution_flavo$distribution < 1,]
+distribution_flavo$OTUs[distribution_flavo$distribution < 1] <- "OTUs < 1% abundance"
+kable(head(distribution_flavo),caption="Head of dataframe")
+```
+
+All done for Flavobacteriaceae : time to plot !
+
+To recap, we now have 3 dataframes :
+- 1 dataframe containing the taxonomic distribution of the phylum associated to the SCG in our data
+- 1 dataframe containing the taxonomic distribution of the SCG associated to the phylum Bacteroidota 
+- 1 dataframe containing the taxonomic distribution of the SCG associated to the family Flavobacteriaceae
+
+# Plot 
+
+We want a plot for each taxonomic level.
+
+First, we pick the color palette :
+```{r}
+colors <- c("#d6506b","#91a700","#4c7367","#96395e","#705186","#934100","#cc9b00",
+            "#A9A9A9","#dc8d32","#d33426","#532028","#33303f","#5803bd","#002b62",
+            "#ffdd8e","#7ca071","#00d0ad","#e46f00","#94cfc9","#3d3c22","#6bad37",
+            "#980092","#6b8cb1","#a3d379","#88afff","#60dd6f","#ff6a54","#d7ffcf",
+            "#dfdf4f","#008509","#d9d5ff","#ff246b","#95362f","#a2a34e","#200021",
+            "#d1bba5","#552e00","#dc9e5d","#ffab2c","#76de9e","#003a1c","#336400",
+            "#004c67","#7c6534","#a07d28","#71e40a","#e8ba00","#6e54c5","#866566",
+            "#edb3ff","#d04dff","#da54b5","#01bfd8","#008d54","#432281","#680056",
+            "#d38eb1","#4ca191","#d38473","#cfff66","#553222")
+```
+
+## Phylum
+### Select colors
+We need to select the right number of colors.
+
+```{r}
+colourCountphylum <- length(unique(distribution_phylum$OTUs))
+```
+
+We need 21 colors.
+
+```{r}
+mycolorsphylum <- colors[colourCountphylum:1]
+```
+
+### Plot 
+
+```{r warning=FALSE}
+Phylum.p <- distribution_plot(distribution_phylum, mycolorsphylum, "Taxonomic distribution of SCG in each group of samples")
+Phylum.p
+ggsave("05-SCG-taxonomic-distribution-all.png",Phylum.p,width = 11, height = 8)
+```
+
+## Bacteroidota
+### Select colors
+We need to select the right number of colors.
+
+```{r}
+colourCountbact <- length(unique(distribution_bacteroidota$OTUs))
+```
+
+We need 23 colors.
+
+```{r}
+mycolorsbact <- colors[colourCountbact:1]
+```
+
+### Plot 
+
+```{r warning=FALSE}
+Bacteroidota.p <- distribution_plot(distribution_bacteroidota, mycolorsbact, "Taxonomic distribution of SCG associated with the phylum Bacteroidota in each group of samples")
+Bacteroidota.p
+ggsave("05-SCG-taxonomic-distribution-phylum.png",Bacteroidota.p,width = 11, height = 8)
+```
+
+## Flavobacteriaceae
+### Select colors
+We need to select the right number of colors.
+
+```{r}
+colourCountflavo <- length(unique(distribution_flavo$OTUs))
+```
+
+We need G1 colors.
+
+```{r}
+mycolorsflavo <- colors[colourCountflavo:1]
+```
+
+### Plot 
+
+```{r warning=FALSE}
+Flavo.p <- distribution_plot(distribution_flavo, mycolorsflavo, "Taxonomic distribution of SCG associated with the family Flavobacteriaceae in each group of samples")
+Flavo.p
+ggsave("05-SCG-taxonomic-distribution-family.png",Flavo.p,width = 11, height = 8)
+```
+## All
+
+```{r warning=FALSE}
+title <- ggdraw()+ draw_label("Taxonomic distribution of SCG in every group of samples",
+    fontface = 'bold',x = 0,hjust = 0,size = 25)+
+    theme(plot.margin = margin(0, 0, 0, 10))
+
+Phylum.p <- distribution_plot(distribution_phylum, mycolorsphylum, "Phylum")+
+  theme(legend.text = element_text(size=14))
+Bacteroidota.p <- distribution_plot(distribution_bacteroidota, mycolorsbact, "Bacteroidota")+
+  theme(legend.text = element_text(size=14))
+Flavo.p <- distribution_plot(distribution_flavo, mycolorsflavo, "Flavobacteriaceae")+
+  theme(legend.text = element_text(size=14))
+
+plot_row <- plot_grid(Phylum.p,
+                      Bacteroidota.p,
+                      Flavo.p,
+                      labels=c("A", "B","C"),
+                      ncol = 2, nrow = 2)
+
+Allsamples.p <- plot_grid(title, plot_row,ncol = 1,rel_heights = c(0.1, 1))
+Allsamples.p
+ggsave("05-SCG-taxonomic-distribution-multiplot.png",Allsamples.p,width = 30, height = 18)
+```
+# End
